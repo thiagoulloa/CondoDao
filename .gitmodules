@@ -1,0 +1,3 @@
+[submodule "condo-dao-contracts/condo-dao/lib/forge-std"]
+	path = condo-dao-contracts/condo-dao/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
