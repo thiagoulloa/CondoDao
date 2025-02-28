@@ -16,6 +16,7 @@ import {
   useEffect,
 } from "react";
 import { ethers } from "ethers";
+import { useLoading } from "./loading-context"; // Import useLoading
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -27,42 +28,40 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
-const ownerAddress = process.env.NEXT_PUBLIC_OWNER_ADDRESS;
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const { setIsLoading } = useLoading(); // Get setIsLoading from context
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [account, setAccount] = useState<string | null>(null);
   const [signer, setSigner] = useState<ethers.Signer | null>(null);
-  const [signature, setSignature] = useState<string | null>(null); // Estado para a assinatura
+  const [signature, setSignature] = useState<string | null>(null);
 
   const login = async () => {
     if (window.ethereum) {
       try {
-        // Solicita a conexão da carteira
+        setIsLoading(true); // Start loading
         const accounts = await window.ethereum.request({
           method: "eth_requestAccounts",
         });
         if (accounts && accounts.length > 0) {
           const selectedAccount = accounts[0];
-          // if(selectedAccount != ownerAddress) return;
           setAccount(selectedAccount);
 
-          // Obtém o provedor e o signer
           const provider = new ethers.BrowserProvider(window.ethereum);
           const userSigner = await provider.getSigner();
           setSigner(userSigner);
 
-          // Solicita a assinatura da mensagem
           const userSignature = await userSigner.signMessage(
             "Sign this message to authenticate with our application."
           );
-          setSignature(userSignature); // Armazena a assinatura no estado
-          // Após obter a assinatura, define o estado de login como verdadeiro
+          setSignature(userSignature);
           setIsLoggedIn(true);
         }
       } catch (err) {
         console.error("Error connecting to MetaMask:", err);
+      } finally {
+        setIsLoading(false); // Stop loading regardless of success or failure
       }
     } else {
       console.error("MetaMask is not installed");
@@ -71,7 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setAccount(null);
-    setSignature(null); // Limpa a assinatura ao deslogar
+    setSignature(null);
     setIsLoggedIn(false);
     setSigner(null);
   };
@@ -79,17 +78,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const checkWalletConnection = async () => {
       if (window.ethereum) {
-        const accounts = await window.ethereum.request({
-          method: "eth_accounts",
-        });
-        if (accounts && accounts.length > 0) {
-          const selectedAccount = accounts[0];
-          setAccount(selectedAccount);
+        try {
+          setIsLoading(true);
+          const accounts = await window.ethereum.request({
+            method: "eth_accounts",
+          });
+          if (accounts && accounts.length > 0) {
+            const selectedAccount = accounts[0];
+            setAccount(selectedAccount);
 
-          // Obtém o provedor e o signer
-          const provider = new ethers.BrowserProvider(window.ethereum);
-          const userSigner = await provider.getSigner();
-          setSigner(userSigner);
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const userSigner = await provider.getSigner();
+            setSigner(userSigner);
+          }
+        } catch (error) {
+          console.error("Error checking wallet connection: ", error);
+        } finally {
+          setIsLoading(false);
         }
       }
     };

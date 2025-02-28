@@ -7,7 +7,7 @@ interface MotionButtonProps<T> {
   label: string;
   className?: string;
   Icon?: React.ComponentType<{ className: string }> | string;
-  func: (param: T) => T;
+  func: () => void;
 }
 
 export const MotionButton = ({
